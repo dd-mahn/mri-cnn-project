@@ -23,6 +23,9 @@ def load_and_preprocess_image(file_path, target_size=(224, 224)):
     # Chuyển đổi sang mảng numpy và chuẩn hóa
     img_array = np.array(img) / 255.0
     
+    # Convert grayscale to RGB by stacking the single channel
+    img_array = np.stack((img_array,) * 3, axis=-1)
+    
     return img_array
 
 def prepare_dataset(data_dir, target_size=(224, 224)):
