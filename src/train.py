@@ -1,9 +1,20 @@
 import tensorflow as tf
+import os
 from data_preprocessing import prepare_dataset
 from model import build_resnet
 
+# Get the current directory of the script
+current_dir = os.path.dirname(__file__)
+
+# Define the relative path to the data directory
+data_dir = os.path.join(current_dir, '..', 'data', 'raw')
+
+# Convert to an absolute path (optional, but can be useful for clarity)
+data_dir = os.path.abspath(data_dir)
+
+print(f"Data directory: {data_dir}")
+
 # Load and preprocess the data
-data_dir = "C:\\Users\\ADMIN\\Documents\\Workspace\\mri-cnn-project\\mri-cnn-project\\data\\raw"
 X_train, X_test, y_train, y_test = prepare_dataset(data_dir)
 
 # Build the model
