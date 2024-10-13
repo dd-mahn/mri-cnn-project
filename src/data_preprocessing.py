@@ -15,7 +15,7 @@ def load_and_preprocess_image(file_path, target_size=(224, 224)):
     - img_array (numpy array): Mảng numpy của hình ảnh đã được tiền xử lý.
     """
     # Tải hình ảnh
-    img = Image.open(file_path).convert('L')  # Chuyển đổi sang thang độ xám
+    img = Image.open(file_path).convert('L')  # Convert to grayscale
     
     # Thay đổi kích thước
     img = img.resize(target_size)
@@ -28,17 +28,17 @@ def load_and_preprocess_image(file_path, target_size=(224, 224)):
     
     return img_array
 
-def prepare_dataset(data_dir, target_size=(224, 224)):
+def prepare_dataset(data_dirs, target_size=(224, 224)):
     """
     Chuẩn bị tập dữ liệu từ thư mục hình ảnh.
 
     Tham số:
-    - data_dir (str): Đường dẫn đến thư mục chứa hình ảnh.
+    - data_dirs (list of str): Danh sách đường dẫn đến thư mục chứa hình ảnh.
     - target_size (tuple): Kích thước mục tiêu để thay đổi kích thước hình ảnh.
 
     Trả về:
-    - X_train, X_val, X_test (numpy arrays): Các tập dữ liệu huấn luyện, xác thực và kiểm tra.
-    - y_train, y_val, y_test (numpy arrays): Các nhãn tương ứng cho các tập dữ liệu.
+    - X_train, X_val (numpy arrays): Các tập dữ liệu huấn luyện và xác thực.
+    - y_train, y_val (numpy arrays): Các nhãn tương ứng cho các tập dữ liệu.
     """
     images = []
     labels = []
@@ -65,21 +65,64 @@ def prepare_dataset(data_dir, target_size=(224, 224)):
         return image
     
     # Xử lý từng hình ảnh trong thư mục
-    for img_name in os.listdir(data_dir):
-        img_path = os.path.join(data_dir, img_name)
-        if not os.path.isfile(img_path):
-            continue  # Bỏ qua nếu không phải là tệp
-        img_array = load_and_preprocess_image(img_path, target_size)
-        img_array = apply_filters(img_array)
-        images.append(img_array)
-        # Gán nhãn mặc định, ví dụ: 0, hoặc lấy từ tên tệp
-        labels.append(0)
+    for data_dir in data_dirs:
+        for sub_dir in os.listdir(data_dir):
+            sub_dir_path = os.path.join(data_dir, sub_dir)
+            if not os.path.isdir(sub_dir_path):
+                continue  # Bỏ qua nếu không phải là thư mục
+            label = sub_dir  # Sử dụng tên thư mục con làm nhãn
+            print(f"Xử lý thư mục: {sub_dir_path}")
+            for img_name in os.listdir(sub_dir_path):
+                img_path = os.path.join(sub_dir_path, img_name)
+                if not os.path.isfile(img_path):
+                    continue  # Bỏ qua nếu không phải là tệp
+                try:
+                    img_array = load_and_preprocess_image(img_path, target_size)
+                    img_array = apply_filters(img_array)
+                    images.append(img_array)
+                    labels.append(label)
+                except Exception as e:
+                    print(f"Lỗi khi xử lý {img_path}: {e}")
+    if not images:
+        print("Không tìm thấy hình ảnh. Vui lòng kiểm tra đường dẫn thư mục và nội dung.")
+        return None, None, None, None
     
     # Điều chỉnh tỷ lệ chia dữ liệu
     X_train, X_temp, y_train, y_temp = train_test_split(np.array(images), np.array(labels), test_size=0.3, random_state=42)
     X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
     
     return X_train, X_val, X_test, y_train, y_val, y_test
+
+def load_test_data(test_dir, target_size=(224, 224)):
+    """
+    Tải dữ liệu kiểm tra từ thư mục hình ảnh.
+
+    Tham số:
+    - test_dir (str): Đường dẫn đến thư mục chứa hình ảnh kiểm tra.
+    - target_size (tuple): Kích thước mục tiêu để thay đổi kích thước hình ảnh.
+
+    Trả về:
+    - test_images (numpy array): Mảng numpy của hình ảnh kiểm tra.
+    - test_labels (numpy array): Mảng numpy của nhãn kiểm tra.
+    """
+    test_images = []
+    test_labels = []
+    for class_name in os.listdir(test_dir):
+        class_dir = os.path.join(test_dir, class_name)
+        if not os.path.isdir(class_dir):
+            continue
+        for img_name in os.listdir(class_dir):
+            img_path = os.path.join(class_dir, img_name)
+            img_array = load_and_preprocess_image(img_path, target_size)
+            test_images.append(img_array)
+            test_labels.append(class_name)
+    
+    # Convert labels to numerical format
+    unique_labels = list(set(test_labels))
+    label_to_index = {label: index for index, label in enumerate(unique_labels)}
+    test_labels = [label_to_index[label] for label in test_labels]
+    
+    return np.array(test_images), np.array(test_labels)
 
 def save_processed_data(output_dir, X_train, X_val, X_test, y_train, y_val, y_test):
     """
@@ -111,14 +154,15 @@ if __name__ == "__main__":
     # Chuyển đổi sang đường dẫn tuyệt đối (tùy chọn, nhưng có thể hữu ích để rõ ràng)
     data_dir = os.path.abspath(data_dir)
     
-    X_train, X_val, X_test, y_train, y_val, y_test = prepare_dataset(data_dir)
-    print(f"Training set shape: {X_train.shape}")
-    print(f"Validation set shape: {X_val.shape}")
-    print(f"Test set shape: {X_test.shape}")
+    X_train, X_val, X_test, y_train, y_val, y_test = prepare_dataset([data_dir])
+    if X_train is not None:
+        print(f"Hình dạng tập huấn luyện: {X_train.shape}")
+        print(f"Hình dạng tập xác thực: {X_val.shape}")
+        print(f"Hình dạng tập kiểm tra: {X_test.shape}")
     
     # Định nghĩa đường dẫn đến thư mục đầu ra
     output_dir = os.path.join(current_dir, '..', 'data', 'processed')
     output_dir = os.path.abspath(output_dir)
     
-    # Lưu dữ liệu đã xử lý
-    save_processed_data(output_dir, X_train, X_val, X_test, y_train, y_val, y_test)
+    if X_train is not None:
+        save_processed_data(output_dir, X_train, X_val, X_test, y_train, y_val, y_test)
