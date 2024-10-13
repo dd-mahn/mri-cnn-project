@@ -1,0 +1,6 @@
+/venv/
+/data/raw
+/data/processed
+/history
+/data/testing
+/src/__pycache__
