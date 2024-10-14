@@ -6,20 +6,17 @@ import os
 current_dir = os.path.dirname(__file__)
 history_dir = os.path.join(current_dir, '..', 'history')
 
-# Tải kết quả của bạn từ tệp trong thư mục lịch sử
-with open(os.path.join(history_dir, 'evaluation_results.txt'), 'r') as f:
+# Tải kết quả từ tệp trong thư mục lịch sử
+evaluation_results_path = os.path.join(history_dir, 'evaluation_results.txt')
+with open(evaluation_results_path, 'r') as f:
     lines = f.readlines()
-    your_results = {line.split(':')[0].strip(): float(line.split(':')[1].strip()) for line in lines}
+    results = {line.split(':')[0].strip(): float(line.split(':')[1].strip()) for line in lines}
 
-# Kết quả của các nghiên cứu trước đó (dữ liệu ví dụ, thay thế bằng dữ liệu thực tế)
-previous_studies = [
-    {"name": "Study A", "accuracy": 0.85, "precision": 0.86, "recall": 0.84, "f1_score": 0.85, "auc_roc": 0.92},
-    {"name": "Study B", "accuracy": 0.88, "precision": 0.89, "recall": 0.87, "f1_score": 0.88, "auc_roc": 0.94},
-    # Thêm nhiều nghiên cứu hơn nếu cần
-]
+# Kết quả của các nghiên cứu trước đó
+previous_studies = []
 
 # Thêm kết quả của bạn vào danh sách
-previous_studies.append({"name": "Your Study", **your_results})
+previous_studies.append({"name": "Your Study", **results})
 
 # Tạo DataFrame từ danh sách các nghiên cứu
 df = pd.DataFrame(previous_studies)
@@ -35,9 +32,11 @@ for i, metric in enumerate(metrics):
     plt.xticks(rotation=45, ha='right')
 
 plt.tight_layout()
-plt.savefig('comparison_with_previous_studies.png')
+comparison_plot_path = os.path.join(history_dir, 'comparison_with_previous_studies.png')
+plt.savefig(comparison_plot_path)
 plt.close()
 
 # In bảng so sánh
+print("Bảng so sánh kết quả:")
 print(df.to_string(index=False))
 

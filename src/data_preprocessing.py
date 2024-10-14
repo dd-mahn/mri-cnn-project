@@ -15,7 +15,7 @@ def load_and_preprocess_image(file_path, target_size=(224, 224)):
     - img_array (numpy array): Mảng numpy của hình ảnh đã được tiền xử lý.
     """
     # Tải hình ảnh
-    img = Image.open(file_path).convert('L')  # Convert to grayscale
+    img = Image.open(file_path).convert('L')  # Chuyển đổi sang ảnh xám
     
     # Thay đổi kích thước
     img = img.resize(target_size)
@@ -23,10 +23,30 @@ def load_and_preprocess_image(file_path, target_size=(224, 224)):
     # Chuyển đổi sang mảng numpy và chuẩn hóa
     img_array = np.array(img) / 255.0
     
-    # Convert grayscale to RGB by stacking the single channel
+    # Chuyển đổi ảnh xám sang RGB bằng cách xếp chồng kênh đơn
     img_array = np.stack((img_array,) * 3, axis=-1)
     
     return img_array
+
+def apply_filters(image):
+    """
+    Áp dụng các bộ lọc tùy chỉnh cho hình ảnh.
+
+    Tham số:
+    - image (numpy array): Mảng numpy của hình ảnh.
+
+    Trả về:
+    - image (numpy array): Mảng numpy của hình ảnh đã được áp dụng bộ lọc.
+    """
+    # Điều chỉnh độ tương phản bằng NumPy
+    mean = np.mean(image)
+    image = (image - mean) * 2 + mean  # Điều chỉnh độ tương phản đơn giản
+    # Cắt giá trị để duy trì phạm vi hợp lệ
+    image = np.clip(image, 0, 1)
+    # Điều chỉnh độ sáng ngẫu nhiên
+    image = image + np.random.uniform(-0.2, 0.2)
+    image = np.clip(image, 0, 1)
+    return image
 
 def prepare_dataset(data_dirs, target_size=(224, 224)):
     """
@@ -37,32 +57,11 @@ def prepare_dataset(data_dirs, target_size=(224, 224)):
     - target_size (tuple): Kích thước mục tiêu để thay đổi kích thước hình ảnh.
 
     Trả về:
-    - X_train, X_val (numpy arrays): Các tập dữ liệu huấn luyện và xác thực.
-    - y_train, y_val (numpy arrays): Các nhãn tương ứng cho các tập dữ liệu.
+    - X_train, X_val, X_test (numpy arrays): Các tập dữ liệu huấn luyện, xác thực và kiểm tra.
+    - y_train, y_val, y_test (numpy arrays): Các nhãn tương ứng cho các tập dữ liệu.
     """
     images = []
     labels = []
-    
-    # Áp dụng điều chỉnh độ tương phản và độ sáng tùy chỉnh cho hình ảnh 2D
-    def apply_filters(image):
-        """
-        Áp dụng các bộ lọc tùy chỉnh cho hình ảnh.
-
-        Tham số:
-        - image (numpy array): Mảng numpy của hình ảnh.
-
-        Trả về:
-        - image (numpy array): Mảng numpy của hình ảnh đã được áp dụng bộ lọc.
-        """
-        # Điều chỉnh độ tương phản bằng NumPy
-        mean = np.mean(image)
-        image = (image - mean) * 2 + mean  # Điều chỉnh độ tương phản đơn giản
-        # Cắt giá trị để duy trì phạm vi hợp lệ
-        image = np.clip(image, 0, 1)
-        # Điều chỉnh độ sáng ngẫu nhiên
-        image = image + np.random.uniform(-0.2, 0.2)
-        image = np.clip(image, 0, 1)
-        return image
     
     # Xử lý từng hình ảnh trong thư mục
     for data_dir in data_dirs:
@@ -117,7 +116,7 @@ def load_test_data(test_dir, target_size=(224, 224)):
             test_images.append(img_array)
             test_labels.append(class_name)
     
-    # Convert labels to numerical format
+    # Chuyển đổi nhãn sang định dạng số
     unique_labels = list(set(test_labels))
     label_to_index = {label: index for index, label in enumerate(unique_labels)}
     test_labels = [label_to_index[label] for label in test_labels]
@@ -142,6 +141,19 @@ def save_processed_data(output_dir, X_train, X_val, X_test, y_train, y_val, y_te
     np.save(os.path.join(output_dir, 'y_train.npy'), y_train)
     np.save(os.path.join(output_dir, 'y_val.npy'), y_val)
     np.save(os.path.join(output_dir, 'y_test.npy'), y_test)
+
+def extract_image_attributes(image):
+    """
+    Extract attributes from the image.
+    """
+    attributes = {
+        'mean_intensity': np.mean(image),
+        'std_intensity': np.std(image),
+        'min_intensity': np.min(image),
+        'max_intensity': np.max(image),
+        'shape': image.shape
+    }
+    return attributes
 
 # Sử dụng
 if __name__ == "__main__":
