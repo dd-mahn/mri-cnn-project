@@ -1,6 +1,7 @@
 /venv/
 /data/raw
 /data/processed
-/history
 /data/testing
 /src/__pycache__
+model/*.h5
+model/*.keras
